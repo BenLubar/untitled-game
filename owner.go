@@ -4,15 +4,15 @@ import (
 	"fmt"
 )
 
-type OwnerInverseComponent struct {
+type OwnerOfComponent struct {
 	ID EntityReference
 }
 
 func init() {
-	registerComponentType(&OwnerInverseComponent{})
+	registerComponentType(&OwnerOfComponent{})
 }
 
-func (c *OwnerInverseComponent) String() string {
+func (c *OwnerOfComponent) String() string {
 	return fmt.Sprintf("OWNER_OF id[entity]=%v", c.ID)
 }
 

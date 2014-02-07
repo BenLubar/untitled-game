@@ -28,15 +28,15 @@ var (
 )
 
 func (t Timestamp) Tick() uint64 {
-	return uint64((t - ts_min) % ts_ticks_per_day) + 1
+	return uint64((t-ts_min)%ts_ticks_per_day) + 1
 }
 
 func (t Timestamp) Day() uint64 {
-	return uint64((t - ts_min) / ts_ticks_per_day % ts_days_per_year) + 1
+	return uint64((t-ts_min)/ts_ticks_per_day%ts_days_per_year) + 1
 }
 
 func (t Timestamp) Year() uint64 {
-	return uint64((t - ts_min) / ts_ticks_per_year) + 1
+	return uint64((t-ts_min)/ts_ticks_per_year) + 1
 }
 
 func (t Timestamp) String() string {

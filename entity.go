@@ -14,7 +14,7 @@ type Entity struct {
 // invariant: entities.list[i].ID == EntityReference(i+1)
 var entities struct {
 	list []*Entity
-	sync.Mutex
+	sync.RWMutex
 }
 
 func NewEntity() *Entity {
@@ -31,15 +31,28 @@ func (e *Entity) String() string {
 	buf = append(buf, "ENTITY id[entity]="...)
 	buf = strconv.AppendUint(buf, uint64(e.ID), 10)
 
+	e.RDo(func() {
+		for _, c := range e.Components {
+			buf = append(buf, "\n\t"...)
+			buf = append(buf, c.String()...)
+		}
+	})
+
+	return string(buf)
+}
+
+func (e *Entity) Do(f func()) {
+	e.Lock()
+	defer e.Unlock()
+
+	f()
+}
+
+func (e *Entity) RDo(f func()) {
 	e.RLock()
 	defer e.RUnlock()
 
-	for _, c := range e.Components {
-		buf = append(buf, "\n\t"...)
-		buf = append(buf, c.String()...)
-	}
-
-	return string(buf)
+	f()
 }
 
 type EntityReference uint64
@@ -49,8 +62,23 @@ func (ref EntityReference) Get() *Entity {
 		return nil
 	}
 
-	entities.Lock()
-	defer entities.Unlock()
+	entities.RLock()
+	defer entities.RUnlock()
 
 	return entities.list[ref-1]
+}
+
+func EachEntity(f func(*Entity)) {
+	entities.RLock()
+	defer entities.RUnlock()
+
+	for _, e := range entities.list {
+		func() {
+			// unlock the list so new entities can be created during iteration
+			entities.RUnlock()
+			defer entities.RLock()
+
+			f(e)
+		}()
+	}
 }
