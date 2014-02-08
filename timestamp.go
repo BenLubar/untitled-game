@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 // Timestamp 0 is the "nil time".
 type Timestamp uint64
 
@@ -35,14 +31,50 @@ func (t Timestamp) Day() uint64 {
 	return uint64((t-ts_min)/ts_ticks_per_day%ts_days_per_year) + 1
 }
 
-func (t Timestamp) Year() uint64 {
-	return uint64((t-ts_min)/ts_ticks_per_year) + 1
-}
-
-func (t Timestamp) String() string {
+func (t Timestamp) Season() string {
 	if t == 0 {
 		return "N/A"
 	}
+	d := t.Day()
+	switch {
+	case d < 2:
+		return "the thaw"
+	case d < 53+2:
+		return "early spring"
+	case d < 53*2+2:
+		return "midspring"
+	case d < 53*3+2:
+		return "late spring"
+	case d < 53*3+3:
+		return "the burn"
+	case d < 53*4+3:
+		return "early summer"
+	case d < 53*5+3:
+		return "midsummer"
+	case d < 53*6+3:
+		return "late summer"
+	case d < 53*6+4:
+		return "the fall"
+	case d < 53*7+4:
+		return "early autumn"
+	case d < 53*8+4:
+		return "midautumn"
+	case d < 53*9+4:
+		return "late autumn"
+	case d < 53*9+5:
+		return "the freeze"
+	case d < 53*10+5:
+		return "early winter"
+	case d < 53*11+5:
+		return "midwinter"
+	case d < 53*12+5:
+		return "late winter"
+	default:
+		return "year's end"
 
-	return fmt.Sprintf("%d-%d-%d", t.Year(), t.Day(), t.Tick())
+	}
+}
+
+func (t Timestamp) Year() uint64 {
+	return uint64((t-ts_min)/ts_ticks_per_year) + 1
 }
