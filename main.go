@@ -2,11 +2,90 @@ package main
 
 import (
 	"fmt"
-	"github.com/dustin/go-humanize"
+	"github.com/nsf/termbox-go"
+	"time"
 )
 
 func main() {
-	for t := Timestamp(1); t <= ts_ticks_per_year + 1; t += ts_ticks_per_day / 5 {
-		fmt.Printf("It is %v in %v, the %v day of %v.\n", t.TimeOfDay(), t.Season(), humanize.Ordinal(int(t.Day())), t.Year())
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+
+	repaint := time.Tick(time.Second / 60)
+
+	events := make(chan termbox.Event)
+	go pollEvents(events)
+	for {
+		select {
+		case e := <-events:
+			switch e.Type {
+			case termbox.EventError:
+				panic(e.Err)
+			case termbox.EventKey:
+				panic(fmt.Sprintf("%v, %v, %v", e.Key, e.Ch, e.Mod))
+			case termbox.EventMouse:
+				panic(fmt.Sprintf("%v, %v", e.MouseX, e.MouseY))
+			case termbox.EventResize:
+				// ignore
+			}
+
+		case <-repaint:
+			w, h := termbox.Size()
+			termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
+
+			// TODO: actual game timer
+			t := Timestamp(time.Now().UnixNano()) / Timestamp(time.Millisecond)
+
+			x := 1
+
+			divider := func() {
+				for i := 0; i < 3; i++ {
+					x++
+					if i == 1 {
+						termbox.SetCell(w-x, 0, '|', termbox.ColorBlack, termbox.ColorWhite)
+					} else {
+						termbox.SetCell(w-x, 0, ' ', termbox.ColorBlack, termbox.ColorWhite)
+					}
+				}
+			}
+
+			// always use at least four digits for the year
+			for year := t.Year(); year != 0 || x < 4; year /= 10 {
+				x++
+				termbox.SetCell(w-x, 0, '0'+rune(year%10), termbox.ColorBlack, termbox.ColorWhite)
+			}
+			divider()
+			season := t.Season().String()
+			for i, ch := range season {
+				termbox.SetCell(w-x-len(season)+i, 0, ch, termbox.ColorBlack, termbox.ColorWhite)
+			}
+			x += len(season)
+			divider()
+			tod := t.TimeOfDay().String()
+			for i, ch := range tod {
+				termbox.SetCell(w-x-len(tod)+i, 0, ch, termbox.ColorBlack, termbox.ColorWhite)
+			}
+			x += len(tod)
+			for x < w-1 {
+				x++
+				termbox.SetCell(w-x, 0, ' ', termbox.ColorBlack, termbox.ColorWhite)
+			}
+			for y := 0; y < h; y++ {
+				termbox.SetCell(0, y, ' ', termbox.ColorBlack, termbox.ColorWhite)
+				termbox.SetCell(w-1, y, ' ', termbox.ColorBlack, termbox.ColorWhite)
+			}
+			for x = 1; x < w-1; x++ {
+				termbox.SetCell(x, h-1, ' ', termbox.ColorBlack, termbox.ColorWhite)
+			}
+			termbox.Flush()
+		}
+	}
+}
+
+func pollEvents(ch chan<- termbox.Event) {
+	for {
+		ch <- termbox.PollEvent()
 	}
 }
