@@ -35,6 +35,41 @@ func (t Timestamp) Year() uint64 {
 	return uint64((t-ts_min)/ts_ticks_per_year) + 1
 }
 
+type TimeOfDay uint8
+
+const (
+	TimeOfDay_NA TimeOfDay = iota
+
+	TimeOfDay_Night
+	TimeOfDay_Dawn
+	TimeOfDay_Morning
+	TimeOfDay_Afternoon
+	TimeOfDay_Dusk
+
+	timeOfDay_max
+)
+
+var timeOfDayNames [timeOfDay_max]string = [...]string{
+	"N/A",
+
+	"night",
+	"dawn",
+	"morning",
+	"afternoon",
+	"dusk",
+}
+
+func (tod TimeOfDay) String() string {
+	return timeOfDayNames[tod]
+}
+
+func (t Timestamp) TimeOfDay() TimeOfDay {
+	if t == 0 {
+		return TimeOfDay_NA
+	}
+	return TimeOfDay((t.Tick()-1)*5/uint64(ts_ticks_per_day) + 1)
+}
+
 type Season uint8
 
 const (
