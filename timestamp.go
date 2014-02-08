@@ -31,50 +31,107 @@ func (t Timestamp) Day() uint64 {
 	return uint64((t-ts_min)/ts_ticks_per_day%ts_days_per_year) + 1
 }
 
-func (t Timestamp) Season() string {
+func (t Timestamp) Year() uint64 {
+	return uint64((t-ts_min)/ts_ticks_per_year) + 1
+}
+
+type Season uint8
+
+const (
+	Season_NA Season = iota
+
+	Season_TheThaw
+	Season_EarlySpring
+	Season_MidSpring
+	Season_LateSpring
+
+	Season_TheBurn
+	Season_EarlySummer
+	Season_MidSummer
+	Season_LateSummer
+
+	Season_TheFall
+	Season_EarlyAutumn
+	Season_MidAutumn
+	Season_LateAutumn
+
+	Season_TheFreeze
+	Season_EarlyWinter
+	Season_MidWinter
+	Season_LateWinter
+	Season_YearsEnd
+
+	season_max
+)
+
+var seasonNames [season_max]string = [...]string{
+	"N/A",
+
+	"the thaw",
+	"early spring",
+	"midspring",
+	"late spring",
+
+	"the burn",
+	"early summer",
+	"midsummer",
+	"late summer",
+
+	"the fall",
+	"early autumn",
+	"midautumn",
+	"late autumn",
+
+	"the freeze",
+	"early winter",
+	"midwinter",
+	"late winter",
+	"year's end",
+}
+
+func (s Season) String() string {
+	return seasonNames[s]
+}
+
+func (t Timestamp) Season() Season {
 	if t == 0 {
-		return "N/A"
+		return Season_NA
 	}
 	d := t.Day()
 	switch {
 	case d < 2:
-		return "the thaw"
+		return Season_TheThaw
 	case d < 53+2:
-		return "early spring"
+		return Season_EarlySpring
 	case d < 53*2+2:
-		return "midspring"
+		return Season_MidSpring
 	case d < 53*3+2:
-		return "late spring"
+		return Season_LateSpring
 	case d < 53*3+3:
-		return "the burn"
+		return Season_TheBurn
 	case d < 53*4+3:
-		return "early summer"
+		return Season_EarlySummer
 	case d < 53*5+3:
-		return "midsummer"
+		return Season_MidSummer
 	case d < 53*6+3:
-		return "late summer"
+		return Season_LateSummer
 	case d < 53*6+4:
-		return "the fall"
+		return Season_TheFall
 	case d < 53*7+4:
-		return "early autumn"
+		return Season_EarlyAutumn
 	case d < 53*8+4:
-		return "midautumn"
+		return Season_MidAutumn
 	case d < 53*9+4:
-		return "late autumn"
+		return Season_LateAutumn
 	case d < 53*9+5:
-		return "the freeze"
+		return Season_TheFreeze
 	case d < 53*10+5:
-		return "early winter"
+		return Season_EarlyWinter
 	case d < 53*11+5:
-		return "midwinter"
+		return Season_MidWinter
 	case d < 53*12+5:
-		return "late winter"
+		return Season_LateWinter
 	default:
-		return "year's end"
-
+		return Season_YearsEnd
 	}
-}
-
-func (t Timestamp) Year() uint64 {
-	return uint64((t-ts_min)/ts_ticks_per_year) + 1
 }
