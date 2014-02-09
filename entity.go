@@ -8,22 +8,15 @@ import (
 type Entity struct {
 	ID         EntityReference
 	Components []Component
-	sync.RWMutex
+	mtx        sync.RWMutex
 }
 
-// invariant: entities.list[i].ID == EntityReference(i+1)
-var entities struct {
-	list []*Entity
-	sync.RWMutex
-}
-
-func NewEntity() *Entity {
-	entities.Lock()
-	defer entities.Unlock()
-
-	ent := &Entity{ID: EntityReference(len(entities.list) + 1)}
-	entities.list = append(entities.list, ent)
-	return ent
+func (w *World) NewEntity() (ent *Entity) {
+	w.Do(func() {
+		ent = &Entity{ID: EntityReference(len(w.Entities) + 1)}
+		w.Entities = append(w.Entities, ent)
+	})
+	return
 }
 
 func (e *Entity) String() string {
@@ -42,43 +35,41 @@ func (e *Entity) String() string {
 }
 
 func (e *Entity) Do(f func()) {
-	e.Lock()
-	defer e.Unlock()
+	e.mtx.Lock()
+	defer e.mtx.Unlock()
 
 	f()
 }
 
 func (e *Entity) RDo(f func()) {
-	e.RLock()
-	defer e.RUnlock()
+	e.mtx.RLock()
+	defer e.mtx.RUnlock()
 
 	f()
 }
 
 type EntityReference uint64
 
-func (ref EntityReference) Get() *Entity {
-	if ref == 0 {
-		return nil
+func (ref EntityReference) Get(w *World) (ent *Entity) {
+	if ref != 0 {
+		w.RDo(func() {
+			ent = w.Entities[ref-1]
+		})
 	}
-
-	entities.RLock()
-	defer entities.RUnlock()
-
-	return entities.list[ref-1]
+	return
 }
 
-func EachEntity(f func(*Entity)) {
-	entities.RLock()
-	defer entities.RUnlock()
+func (w *World) EachEntity(f func(*Entity)) {
+	var entities []*Entity
 
-	for _, e := range entities.list {
-		func() {
-			// unlock the list so new entities can be created during iteration
-			entities.RUnlock()
-			defer entities.RLock()
+	w.RDo(func() {
+		// This is safe because entities are never removed, so the only thing we have
+		// to worry about is grabbing the entity list in between an update to the length
+		// and to the pointer.
+		entities = w.Entities
+	})
 
-			f(e)
-		}()
+	for _, e := range entities {
+		f(e)
 	}
 }
