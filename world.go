@@ -29,6 +29,9 @@ type World struct {
 
 	Time Timestamp
 
+	Strings    []string
+	revStrings map[string]int
+
 	mtx sync.RWMutex
 }
 
@@ -70,6 +73,11 @@ func (w *World) AfterLoad() (err error) {
 			return
 		}
 
+		w.revStrings = make(map[string]int, len(w.Strings))
+		for i, s := range w.Strings {
+			w.revStrings[s] = i
+		}
+
 		switch w.Version {
 		case 0:
 			// TODO: generate a world
@@ -99,6 +107,29 @@ func (w *World) AfterLoad() (err error) {
 
 func (w *World) BeforeSave() (err error) {
 	w.Do(func() {
+	})
+	return
+}
+
+func (w *World) StringID(s string) (i int) {
+	w.Do(func() {
+		var ok bool
+		if i, ok = w.revStrings[s]; ok {
+			return
+		}
+		i = len(w.Strings)
+		w.Strings = append(w.Strings, s)
+		w.revStrings[s] = i
+	})
+	return
+}
+
+func (w *World) StringForID(i int) (s string, ok bool) {
+	w.RDo(func() {
+		if i < 0 || i >= len(w.Strings) {
+			return
+		}
+		s, ok = w.Strings[i], true
 	})
 	return
 }

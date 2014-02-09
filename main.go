@@ -26,64 +26,97 @@ func main() {
 			case termbox.EventError:
 				panic(e.Err)
 			case termbox.EventKey:
-				panic(fmt.Sprintf("%v, %v, %v", e.Key, e.Ch, e.Mod))
+				if world := GetWorld(); world == nil {
+					if !mainMenu.inputKey(e.Key, e.Ch, e.Mod) {
+						return
+					}
+				} else {
+					// TODO: game UI
+					panic(fmt.Sprintf("%v, %v, %v", e.Key, e.Ch, e.Mod))
+				}
 			case termbox.EventMouse:
-				panic(fmt.Sprintf("%v, %v", e.MouseX, e.MouseY))
+				if world := GetWorld(); world == nil {
+					mainMenu.inputMouse(e.MouseX, e.MouseY)
+				} else {
+					// TODO: game UI
+					panic(fmt.Sprintf("%v, %v", e.MouseX, e.MouseY))
+				}
 			case termbox.EventResize:
 				// ignore
 			}
 
 		case <-repaint:
-			w, h := termbox.Size()
 			termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
 
-			// TODO: actual game timer
-			t := Timestamp(time.Now().UnixNano()) / Timestamp(time.Millisecond)
+			w, h := termbox.Size()
 
-			x := 1
-
-			divider := func() {
-				for i := 0; i < 3; i++ {
-					x++
-					if i == 1 {
-						termbox.SetCell(w-x, 0, '|', termbox.ColorBlack, termbox.ColorWhite)
-					} else {
-						termbox.SetCell(w-x, 0, ' ', termbox.ColorBlack, termbox.ColorWhite)
-					}
-				}
-			}
-
-			// always use at least four digits for the year
-			for year := t.Year(); year != 0 || x < 4; year /= 10 {
-				x++
-				termbox.SetCell(w-x, 0, '0'+rune(year%10), termbox.ColorBlack, termbox.ColorWhite)
-			}
-			divider()
-			season := t.Season().String()
-			for i, ch := range season {
-				termbox.SetCell(w-x-len(season)+i, 0, ch, termbox.ColorBlack, termbox.ColorWhite)
-			}
-			x += len(season)
-			divider()
-			tod := t.TimeOfDay().String()
-			for i, ch := range tod {
-				termbox.SetCell(w-x-len(tod)+i, 0, ch, termbox.ColorBlack, termbox.ColorWhite)
-			}
-			x += len(tod)
-			for x < w-1 {
-				x++
-				termbox.SetCell(w-x, 0, ' ', termbox.ColorBlack, termbox.ColorWhite)
-			}
-			for y := 0; y < h; y++ {
-				termbox.SetCell(0, y, ' ', termbox.ColorBlack, termbox.ColorWhite)
-				termbox.SetCell(w-1, y, ' ', termbox.ColorBlack, termbox.ColorWhite)
-			}
-			for x = 1; x < w-1; x++ {
-				termbox.SetCell(x, h-1, ' ', termbox.ColorBlack, termbox.ColorWhite)
+			if world := GetWorld(); world == nil {
+				mainMenu.render(w, h)
+			} else {
+				// TODO: game UI
+				renderBorder(w, h, world)
 			}
 			termbox.Flush()
 		}
 	}
+}
+
+func renderBorder(w, h int, world *World) {
+	var t Timestamp
+	world.RDo(func() {
+		t = world.Time
+	})
+
+	x := 0
+
+	x++
+	termbox.SetCell(w-x, 0, '╗', termbox.ColorBlack, termbox.ColorWhite)
+	x++
+	termbox.SetCell(w-x, 0, '╞', termbox.ColorBlack, termbox.ColorWhite)
+
+	divider := func() {
+		x++
+		termbox.SetCell(w-x, 0, '╡', termbox.ColorBlack, termbox.ColorWhite)
+		x++
+		termbox.SetCell(w-x, 0, '═', termbox.ColorBlack, termbox.ColorWhite)
+		x++
+		termbox.SetCell(w-x, 0, '╞', termbox.ColorBlack, termbox.ColorWhite)
+	}
+
+	// always use at least four digits for the year
+	for year := t.Year(); year != 0 || x < 4; year /= 10 {
+		x++
+		termbox.SetCell(w-x, 0, '0'+rune(year%10), termbox.ColorBlack, termbox.ColorWhite)
+	}
+	divider()
+	season := t.Season().String()
+	for i, ch := range season {
+		termbox.SetCell(w-x-len(season)+i, 0, ch, termbox.ColorBlack, termbox.ColorWhite)
+	}
+	x += len(season)
+	divider()
+	tod := t.TimeOfDay().String()
+	for i, ch := range tod {
+		termbox.SetCell(w-x-len(tod)+i, 0, ch, termbox.ColorBlack, termbox.ColorWhite)
+	}
+	x += len(tod)
+
+	x++
+	termbox.SetCell(w-x, 0, '╡', termbox.ColorBlack, termbox.ColorWhite)
+	for x < w-1 {
+		x++
+		termbox.SetCell(w-x, 0, '═', termbox.ColorBlack, termbox.ColorWhite)
+	}
+	termbox.SetCell(0, 0, '╔', termbox.ColorBlack, termbox.ColorWhite)
+	for y := 1; y < h-1; y++ {
+		termbox.SetCell(0, y, '║', termbox.ColorBlack, termbox.ColorWhite)
+		termbox.SetCell(w-1, y, '║', termbox.ColorBlack, termbox.ColorWhite)
+	}
+	termbox.SetCell(0, h-1, '╚', termbox.ColorBlack, termbox.ColorWhite)
+	for x = 1; x < w-1; x++ {
+		termbox.SetCell(x, h-1, '═', termbox.ColorBlack, termbox.ColorWhite)
+	}
+	termbox.SetCell(w-1, h-1, '╝', termbox.ColorBlack, termbox.ColorWhite)
 }
 
 func pollEvents(ch chan<- termbox.Event) {
