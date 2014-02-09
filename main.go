@@ -53,6 +53,7 @@ func main() {
 			if world := GetWorld(); world == nil {
 				mainMenu.render(w, h)
 			} else {
+				world.Tick()
 				// TODO: game UI
 				renderBorder(w, h, world)
 			}

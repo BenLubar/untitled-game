@@ -1,7 +1,10 @@
 package main
 
 import (
+	"compress/gzip"
+	"encoding/gob"
 	"fmt"
+	"os"
 	"sync"
 )
 
@@ -32,6 +35,8 @@ type World struct {
 	Strings    []string
 	revStrings map[string]int
 
+	saveName string
+
 	mtx sync.RWMutex
 }
 
@@ -59,6 +64,13 @@ func (w *World) RDo(f func()) {
 	defer w.mtx.RUnlock()
 
 	f()
+}
+
+func (w *World) Tick() {
+	w.Do(func() {
+		w.Time++
+		// TODO: actual update code
+	})
 }
 
 func (w *World) AfterLoad() (err error) {
@@ -132,4 +144,27 @@ func (w *World) StringForID(i int) (s string, ok bool) {
 		s, ok = w.Strings[i], true
 	})
 	return
+}
+
+func (w *World) Save() (err error) {
+	w.Do(func() {
+		err = w.save(os.O_WRONLY | os.O_CREATE | os.O_TRUNC)
+	})
+	return
+}
+
+func (w *World) save(flag int) error {
+	_ = os.Mkdir(SaveDirName, 0777)
+	f, err := os.OpenFile(w.saveName, flag, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	g, err := gzip.NewWriterLevel(f, gzip.BestCompression)
+	if err != nil {
+		return err
+	}
+	defer g.Close()
+
+	return gob.NewEncoder(g).Encode(w)
 }

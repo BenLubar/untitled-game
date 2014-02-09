@@ -5,6 +5,7 @@ import (
 	"github.com/nsf/termbox-go"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
@@ -162,6 +163,30 @@ func (m *mainMenuUI) inputKey(key termbox.Key, ch rune, mod termbox.Modifier) bo
 		case key == termbox.KeyEsc:
 			m.state = menuStateMain
 			m.choiceIndex = len(m.saveNames)
+		case key == termbox.KeyEnter:
+			m.choiceIndex++
+			if m.choiceIndex >= fieldCount {
+				m.choiceIndex = fieldCount - 1
+				if len(m.saveName) == 0 {
+					m.choiceIndex = 0
+					fmt.Print("\a")
+					return true
+				}
+				w := &World{
+					Seed:     NewSeed(string(m.seed)),
+					saveName: filepath.Join(SaveDirName, string(m.saveName)+".sav"),
+				}
+				err := w.save(os.O_CREATE | os.O_EXCL | os.O_WRONLY)
+				if err == nil {
+					err = w.AfterLoad()
+				}
+				if err != nil {
+					panic(err)
+				}
+				worldLock.Lock()
+				world = w
+				worldLock.Unlock()
+			}
 		case key == termbox.KeyArrowDown:
 			m.choiceIndex = (m.choiceIndex + 1) % fieldCount
 		case key == termbox.KeyArrowUp:
