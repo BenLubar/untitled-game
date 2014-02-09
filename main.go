@@ -13,6 +13,8 @@ func main() {
 	}
 	defer termbox.Close()
 
+	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
+
 	repaint := time.Tick(time.Second / 60)
 
 	events := make(chan termbox.Event)
