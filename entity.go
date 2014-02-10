@@ -1,22 +1,25 @@
 package main
 
 import (
+	"encoding/binary"
 	"strconv"
 	"sync"
 )
 
+type EntityReference uint64
+
+func (id EntityReference) bytes() []byte {
+	b := make([]byte, 9)
+	b[0] = 'e'
+	binary.BigEndian.PutUint64(b[1:], uint64(id))
+	return b
+}
+
 type Entity struct {
 	ID         EntityReference
 	Components []Component
+	references uint
 	mtx        sync.RWMutex
-}
-
-func (w *World) NewEntity() (ent *Entity) {
-	w.Do(func() {
-		ent = &Entity{ID: EntityReference(len(w.Entities) + 1)}
-		w.Entities = append(w.Entities, ent)
-	})
-	return
 }
 
 func (e *Entity) String() string {
@@ -46,30 +49,4 @@ func (e *Entity) RDo(f func()) {
 	defer e.mtx.RUnlock()
 
 	f()
-}
-
-type EntityReference uint64
-
-func (ref EntityReference) Get(w *World) (ent *Entity) {
-	if ref != 0 {
-		w.RDo(func() {
-			ent = w.Entities[ref-1]
-		})
-	}
-	return
-}
-
-func (w *World) EachEntity(f func(*Entity)) {
-	var entities []*Entity
-
-	w.RDo(func() {
-		// This is safe because entities are never removed, so the only thing we have
-		// to worry about is grabbing the entity list in between an update to the length
-		// and to the pointer.
-		entities = w.Entities
-	})
-
-	for _, e := range entities {
-		f(e)
-	}
 }

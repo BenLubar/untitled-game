@@ -1,9 +1,8 @@
 package main
 
 import (
-	"compress/gzip"
-	"encoding/gob"
 	"fmt"
+	"github.com/cznic/kv"
 	"github.com/nsf/termbox-go"
 	"math/rand"
 	"os"
@@ -187,19 +186,23 @@ func (m *mainMenuUI) inputKey(key termbox.Key, ch rune, mod termbox.Modifier) bo
 					fmt.Print("\a")
 					return true
 				}
-				w := &World{
-					Seed:     NewSeed(string(m.seed)),
-					saveName: filepath.Join(SaveDirName, string(m.saveName)+".sav"),
-				}
-				err := w.save(os.O_CREATE | os.O_EXCL | os.O_WRONLY)
+				db, err := kv.Create(filepath.Join(SaveDirName, string(m.saveName)+".sav"), &kv.Options{})
+				w := &World{db: db}
 				if err == nil {
-					err = w.AfterLoad()
+					err = w.setSeed(NewSeed(string(m.seed)))
 				}
+
 				if err == nil {
+					err = w.init()
+				}
+
+				if err == nil {
+					m.saveNames = append(m.saveNames, string(m.saveName))
 					worldLock.Lock()
 					world = w
 					worldLock.Unlock()
 				} else {
+					db.Close()
 					m.err = err.Error()
 					m.state = menuStateError
 				}
@@ -264,37 +267,20 @@ func (m *mainMenuUI) inputMouse(x, y int) {
 
 func (m *mainMenuUI) loadGame(name string) {
 	var w World
-	filename := filepath.Join(SaveDirName, name+".sav")
 
-	f, err := os.Open(filename)
+	db, err := kv.Open(filepath.Join(SaveDirName, name+".sav"), &kv.Options{})
 	if err != nil {
 		m.err = err.Error()
 		m.state = menuStateError
 		return
 	}
-	defer f.Close()
+	w.db = db
 
-	g, err := gzip.NewReader(f)
+	err = w.init()
 	if err != nil {
 		m.err = err.Error()
 		m.state = menuStateError
-		return
-	}
-	defer g.Close()
-
-	err = gob.NewDecoder(g).Decode(&w)
-	if err != nil {
-		m.err = err.Error()
-		m.state = menuStateError
-		return
-	}
-
-	w.saveName = filename
-
-	err = w.AfterLoad()
-	if err != nil {
-		m.err = err.Error()
-		m.state = menuStateError
+		w.db.Close()
 		return
 	}
 

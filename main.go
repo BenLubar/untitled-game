@@ -71,10 +71,7 @@ func main() {
 }
 
 func renderBorder(w, h int, world *World) {
-	var t Timestamp
-	world.RDo(func() {
-		t = world.Time
-	})
+	t := world.Time()
 
 	x := 0
 
