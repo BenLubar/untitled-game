@@ -5,7 +5,7 @@ type Tile struct {
 	Entities []EntityReference
 }
 
-type TileType uint64
+type TileType uint8
 
 const (
 	TileRock TileType = iota

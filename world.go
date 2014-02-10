@@ -112,8 +112,15 @@ func (w *World) AfterLoad() (err error) {
 				for y := int64(-worldChunks); y <= worldChunks; y++ {
 					var chunk [ChunkTiles * ChunkTiles]Tile
 					for i := range chunk {
-						_ = i
-						// TODO
+						x2 := x*ChunkTiles + int64(i)/ChunkTiles
+						y2 := y*ChunkTiles + int64(i)%ChunkTiles
+
+						if x2 == y2 || x2 == -y2 {
+							chunk[i].Type = TileDirt
+						} else {
+							chunk[i].Type = TileGrass
+						}
+						// TODO: actual terrain
 					}
 					w.Overworld[[2]int64{x, y}] = &chunk
 

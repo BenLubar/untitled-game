@@ -2,11 +2,19 @@ package main
 
 import (
 	"fmt"
+	"github.com/davecheney/profile"
 	"github.com/nsf/termbox-go"
 	"time"
 )
 
 func main() {
+	defer profile.Start(&profile.Config{
+		Quiet:       true,
+		CPUProfile:  true,
+		MemProfile:  true,
+		ProfilePath: "./prof/",
+	}).Stop()
+
 	err := termbox.Init()
 	if err != nil {
 		panic(err)
@@ -85,7 +93,7 @@ func renderBorder(w, h int, world *World) {
 	}
 
 	// always use at least four digits for the year
-	for year := t.Year(); year != 0 || x < 4 + 2; year /= 10 {
+	for year := t.Year(); year != 0 || x < 4+2; year /= 10 {
 		x++
 		termbox.SetCell(w-x, 0, '0'+rune(year%10), termbox.ColorBlack, termbox.ColorWhite)
 	}
