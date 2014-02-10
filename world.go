@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/gob"
 	"fmt"
+	"github.com/nsf/termbox-go"
 	"os"
 	"sync"
 )
@@ -22,6 +23,8 @@ func (err ErrSaveCorrupt) Error() string {
 	return fmt.Sprintf("corrupt save: %s", string(err))
 }
 
+const ChunkTiles = 128
+
 type World struct {
 	Version uint64
 
@@ -34,6 +37,9 @@ type World struct {
 
 	Strings    []string
 	revStrings map[string]int
+
+	Overworld map[[2]int64]*[ChunkTiles * ChunkTiles]Tile
+	Sites     map[EntityReference]*[ChunkTiles * ChunkTiles]Tile
 
 	saveName string
 
@@ -75,6 +81,12 @@ func (w *World) Tick() {
 
 func (w *World) AfterLoad() (err error) {
 	w.Do(func() {
+		var (
+			generatingTerrain    = []rune("Generating Terrain")
+			generatingPreHistory = []rune("Generating Pre-History")
+			generatingHistory    = []rune("Generating History")
+		)
+
 		if w.Version > CurrentSaveVersion {
 			err = ErrSaveVersionTooNew(w.Version)
 			return
@@ -92,7 +104,100 @@ func (w *World) AfterLoad() (err error) {
 
 		switch w.Version {
 		case 0:
-			// TODO: generate a world
+			w.Overworld = make(map[[2]int64]*[ChunkTiles * ChunkTiles]Tile)
+			w.Sites = make(map[EntityReference]*[ChunkTiles * ChunkTiles]Tile)
+
+			const worldChunks = 32
+			for x := int64(-worldChunks); x <= worldChunks; x++ {
+				for y := int64(-worldChunks); y <= worldChunks; y++ {
+					var chunk [ChunkTiles * ChunkTiles]Tile
+					for i := range chunk {
+						_ = i
+						// TODO
+					}
+					w.Overworld[[2]int64{x, y}] = &chunk
+
+					termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
+					w, h := termbox.Size()
+
+					completion := int(((x+worldChunks)*(worldChunks*2+1) + y + worldChunks) * int64(w) / (worldChunks*2 + 1) / (worldChunks*2 + 1))
+					for j := 0; j < w; j++ {
+						ch := rune(' ')
+						if j > 0 && j <= len(generatingTerrain) {
+							ch = rune(generatingTerrain[j-1])
+						}
+						if j < completion {
+							termbox.SetCell(j, h/2, ch, termbox.ColorBlack|termbox.AttrBold, termbox.ColorWhite)
+						} else {
+							termbox.SetCell(j, h/2, ch, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack)
+						}
+					}
+					termbox.Flush()
+				}
+			}
+
+			for i := Timestamp(0); i < ts_days_per_year*100; i++ {
+				for j := Timestamp(0); j < ts_ticks_per_day; j++ {
+					// TODO
+				}
+
+				termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
+				w, h := termbox.Size()
+
+				for j, ch := range generatingTerrain {
+					termbox.SetCell(j+1, h/2-1, ch, termbox.ColorWhite, termbox.ColorBlack)
+				}
+				completion := int(i * Timestamp(w) / (ts_days_per_year * 100))
+				for j := 0; j < w; j++ {
+					ch := rune(' ')
+					if j > 0 && j <= len(generatingPreHistory) {
+						ch = rune(generatingPreHistory[j-1])
+					}
+					if j < completion {
+						termbox.SetCell(j, h/2, ch, termbox.ColorBlack|termbox.AttrBold, termbox.ColorWhite)
+					} else {
+						termbox.SetCell(j, h/2, ch, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack)
+					}
+				}
+
+				termbox.Flush()
+			}
+
+			w.Time = 0
+			for i := Timestamp(0); i < ts_days_per_year*100; i++ {
+				for j := Timestamp(0); j < ts_ticks_per_day; j++ {
+					w.Time++
+					// TODO
+				}
+
+				termbox.Clear(termbox.ColorWhite, termbox.ColorBlack)
+				w, h := termbox.Size()
+
+				for j, ch := range generatingTerrain {
+					termbox.SetCell(j+1, h/2-2, ch, termbox.ColorWhite, termbox.ColorBlack)
+				}
+				for j, ch := range generatingPreHistory {
+					termbox.SetCell(j+1, h/2-1, ch, termbox.ColorWhite, termbox.ColorBlack)
+				}
+				completion := int(i * Timestamp(w) / (ts_days_per_year * 100))
+				for j := 0; j < w; j++ {
+					ch := rune(' ')
+					if j > 0 && j <= len(generatingHistory) {
+						ch = rune(generatingHistory[j-1])
+					}
+					if j < completion {
+						termbox.SetCell(j, h/2, ch, termbox.ColorBlack|termbox.AttrBold, termbox.ColorWhite)
+					} else {
+						termbox.SetCell(j, h/2, ch, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack)
+					}
+				}
+
+				termbox.Flush()
+			}
+
+			err = fmt.Errorf("TODO: world generator (sorry)")
+			return
+
 			fallthrough
 
 		case CurrentSaveVersion:

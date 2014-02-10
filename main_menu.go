@@ -264,13 +264,16 @@ func (m *mainMenuUI) inputMouse(x, y int) {
 
 func (m *mainMenuUI) loadGame(name string) {
 	var w World
-	f, err := os.Open(filepath.Join(SaveDirName, name+".sav"))
+	filename := filepath.Join(SaveDirName, name+".sav")
+
+	f, err := os.Open(filename)
 	if err != nil {
 		m.err = err.Error()
 		m.state = menuStateError
 		return
 	}
 	defer f.Close()
+
 	g, err := gzip.NewReader(f)
 	if err != nil {
 		m.err = err.Error()
@@ -278,18 +281,23 @@ func (m *mainMenuUI) loadGame(name string) {
 		return
 	}
 	defer g.Close()
+
 	err = gob.NewDecoder(g).Decode(&w)
 	if err != nil {
 		m.err = err.Error()
 		m.state = menuStateError
 		return
 	}
+
+	w.saveName = filename
+
 	err = w.AfterLoad()
 	if err != nil {
 		m.err = err.Error()
 		m.state = menuStateError
 		return
 	}
+
 	worldLock.Lock()
 	world = &w
 	worldLock.Unlock()

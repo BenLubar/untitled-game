@@ -85,7 +85,7 @@ func renderBorder(w, h int, world *World) {
 	}
 
 	// always use at least four digits for the year
-	for year := t.Year(); year != 0 || x < 4; year /= 10 {
+	for year := t.Year(); year != 0 || x < 4 + 2; year /= 10 {
 		x++
 		termbox.SetCell(w-x, 0, '0'+rune(year%10), termbox.ColorBlack, termbox.ColorWhite)
 	}
