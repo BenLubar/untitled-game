@@ -1,6 +1,8 @@
 package main
 
 import (
+	"compress/gzip"
+	"encoding/gob"
 	"fmt"
 	"github.com/nsf/termbox-go"
 	"math/rand"
@@ -43,7 +45,7 @@ func init() {
 
 const (
 	menuStateMain = iota
-	menuStateLoad
+	menuStateError
 	menuStateNew
 )
 
@@ -54,6 +56,7 @@ type mainMenuUI struct {
 	state       uint
 	saveName    []rune
 	seed        []rune
+	err         string
 }
 
 func (m *mainMenuUI) render(w, h int) {
@@ -79,6 +82,9 @@ func (m *mainMenuUI) render(w, h int) {
 		} else {
 			m.drawText(w, len(m.saveNames)+5-skip, "New Game", termbox.ColorWhite, termbox.ColorBlack)
 		}
+
+	case menuStateError:
+		m.drawText(w, 5, m.err, termbox.ColorRed, termbox.ColorBlack)
 
 	case menuStateNew:
 		m.drawText(w, 5, "Save Name", termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack)
@@ -156,6 +162,15 @@ func (m *mainMenuUI) inputKey(key termbox.Key, ch rune, mod termbox.Modifier) bo
 			panic(fmt.Sprintf("%v, %v, %v", key, ch, mod))
 		}
 
+	case menuStateError:
+		switch {
+		case key == termbox.KeyEsc:
+			m.err = ""
+			m.state = menuStateMain
+		default:
+			panic(fmt.Sprintf("%v, %v, %v", key, ch, mod))
+		}
+
 	case menuStateNew:
 		const fieldCount = 2
 
@@ -180,12 +195,14 @@ func (m *mainMenuUI) inputKey(key termbox.Key, ch rune, mod termbox.Modifier) bo
 				if err == nil {
 					err = w.AfterLoad()
 				}
-				if err != nil {
-					panic(err)
+				if err == nil {
+					worldLock.Lock()
+					world = w
+					worldLock.Unlock()
+				} else {
+					m.err = err.Error()
+					m.state = menuStateError
 				}
-				worldLock.Lock()
-				world = w
-				worldLock.Unlock()
 			}
 		case key == termbox.KeyArrowDown:
 			m.choiceIndex = (m.choiceIndex + 1) % fieldCount
@@ -246,7 +263,36 @@ func (m *mainMenuUI) inputMouse(x, y int) {
 }
 
 func (m *mainMenuUI) loadGame(name string) {
-	m.state = menuStateLoad
+	var w World
+	f, err := os.Open(filepath.Join(SaveDirName, name+".sav"))
+	if err != nil {
+		m.err = err.Error()
+		m.state = menuStateError
+		return
+	}
+	defer f.Close()
+	g, err := gzip.NewReader(f)
+	if err != nil {
+		m.err = err.Error()
+		m.state = menuStateError
+		return
+	}
+	defer g.Close()
+	err = gob.NewDecoder(g).Decode(&w)
+	if err != nil {
+		m.err = err.Error()
+		m.state = menuStateError
+		return
+	}
+	err = w.AfterLoad()
+	if err != nil {
+		m.err = err.Error()
+		m.state = menuStateError
+		return
+	}
+	worldLock.Lock()
+	world = &w
+	worldLock.Unlock()
 }
 
 func (m *mainMenuUI) newGame() {
