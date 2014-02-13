@@ -5,8 +5,13 @@ import (
 )
 
 type LocationComponent struct {
-	ID   EntityReference
-	X, Y int64
+	ID     EntityReference
+	ChunkX int64
+	ChunkY int64
+	ChunkZ int64
+	TileX  uint8
+	TileY  uint8
+	TileZ  uint8
 }
 
 func init() {
@@ -14,5 +19,5 @@ func init() {
 }
 
 func (c *LocationComponent) String() string {
-	return fmt.Sprintf("LOCATION id[entity]=%v x[int64]=%v y[int64]=%v", c.ID, c.X, c.Y)
+	return fmt.Sprintf("LOCATION id[entity]=%v chunk[ints]=(%v,%v,%v) tile[ints]=(%v,%v,%v)", c.ID, c.ChunkX, c.ChunkY, c.ChunkZ, c.TileX, c.TileY, c.TileZ)
 }

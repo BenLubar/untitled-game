@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/cznic/kv"
 	"github.com/nsf/termbox-go"
+	"github.com/steveyen/gkvlite"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -186,8 +186,14 @@ func (m *mainMenuUI) inputKey(key termbox.Key, ch rune, mod termbox.Modifier) bo
 					fmt.Print("\a")
 					return true
 				}
-				db, err := kv.Create(filepath.Join(SaveDirName, string(m.saveName)+".sav"), &kv.Options{})
-				w := &World{db: db}
+				_ = os.MkdirAll(SaveDirName, 0777)
+				f, err := os.OpenFile(filepath.Join(SaveDirName, string(m.saveName)+".sav"), os.O_CREATE|os.O_EXCL|os.O_RDWR, 0666)
+				var w *World
+				if err == nil {
+					var store *gkvlite.Store
+					store, err = gkvlite.NewStore(f)
+					w = &World{store: store, storeFile: f}
+				}
 				if err == nil {
 					err = w.setSeed(NewSeed(string(m.seed)))
 				}
@@ -202,7 +208,9 @@ func (m *mainMenuUI) inputKey(key termbox.Key, ch rune, mod termbox.Modifier) bo
 					world = w
 					worldLock.Unlock()
 				} else {
-					db.Close()
+					if f != nil {
+						f.Close()
+					}
 					m.err = err.Error()
 					m.state = menuStateError
 				}
@@ -268,19 +276,26 @@ func (m *mainMenuUI) inputMouse(x, y int) {
 func (m *mainMenuUI) loadGame(name string) {
 	var w World
 
-	db, err := kv.Open(filepath.Join(SaveDirName, name+".sav"), &kv.Options{})
+	f, err := os.OpenFile(filepath.Join(SaveDirName, name+".sav"), os.O_RDWR, 0666)
 	if err != nil {
 		m.err = err.Error()
 		m.state = menuStateError
 		return
 	}
-	w.db = db
+	w.store, err = gkvlite.NewStore(f)
+	if err != nil {
+		m.err = err.Error()
+		m.state = menuStateError
+		f.Close()
+		return
+	}
+	w.storeFile = f
 
 	err = w.init()
 	if err != nil {
 		m.err = err.Error()
 		m.state = menuStateError
-		w.db.Close()
+		f.Close()
 		return
 	}
 

@@ -21,6 +21,14 @@ func main() {
 	}
 	defer termbox.Close()
 
+	defer func() {
+		if world := GetWorld(); world != nil {
+			if err := world.store.Flush(); err != nil {
+				panic(err)
+			}
+		}
+	}()
+
 	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
 
 	repaint := time.Tick(time.Second / 60)

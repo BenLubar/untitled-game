@@ -9,9 +9,8 @@ import (
 type EntityReference uint64
 
 func (id EntityReference) bytes() []byte {
-	b := make([]byte, 9)
-	b[0] = 'e'
-	binary.BigEndian.PutUint64(b[1:], uint64(id))
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b[:], uint64(id))
 	return b
 }
 
