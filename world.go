@@ -362,9 +362,15 @@ func (w *World) init() (err error) {
 		return fmt.Errorf("unexpected version: %d", version)
 	}
 
+	for i := int64(-1); i <= int64(1); i++ {
+		for j := int64(-1); j <= int64(1); j++ {
+			w.RequestChunk(ChunkCoord{i, j})
+		}
+	}
+
 	return w.store.Flush()
 }
 
 func (w *World) Tick() {
-	panic("TODO: game ticks")
+	// TODO: game ticks
 }

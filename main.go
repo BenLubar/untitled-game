@@ -33,6 +33,8 @@ func main() {
 
 	repaint := time.Tick(time.Second / 60)
 
+	var playerX, playerY int64
+
 	events := make(chan termbox.Event)
 	go pollEvents(events)
 	for {
@@ -47,6 +49,22 @@ func main() {
 						return
 					}
 				} else {
+					if e.Key == termbox.KeyArrowDown {
+						playerY--
+						break
+					}
+					if e.Key == termbox.KeyArrowUp {
+						playerY++
+						break
+					}
+					if e.Key == termbox.KeyArrowLeft {
+						playerX--
+						break
+					}
+					if e.Key == termbox.KeyArrowRight {
+						playerX++
+						break
+					}
 					// TODO: game UI
 					panic(fmt.Sprintf("%v, %v, %v", e.Key, e.Ch, e.Mod))
 				}
@@ -70,10 +88,55 @@ func main() {
 				mainMenu.render(w, h)
 			} else {
 				world.Tick()
+				renderWorld(playerX, playerY, w, h, world)
 				// TODO: game UI
 				renderBorder(w, h, world)
 			}
 			termbox.Flush()
+		}
+	}
+}
+
+func renderWorld(playerX, playerY int64, w, h int, world *World) {
+	for cx := int64(-1); cx <= 1; cx++ {
+		for cy := int64(-1); cy <= 1; cy++ {
+			renderChunk(ChunkCoord{cx, cy}, int(cx*ChunkSize-playerX)+w/2, int(playerY-cy*ChunkSize)+h/2, world)
+		}
+	}
+}
+
+func renderChunk(coord ChunkCoord, startX, startY int, world *World) {
+	c, err := world.RequestChunk(coord)
+	if err != nil {
+		panic(err)
+	}
+	defer world.ReleaseChunk(c)
+
+	for x := range c.Tiles {
+		for y := range c.Tiles[x] {
+			var color termbox.Attribute
+			var text []rune
+			switch c.Tiles[x][y].Type {
+			case TileAir:
+				color = termbox.ColorBlack
+				text = []rune(" air ")
+			case TileDirt:
+				color = termbox.ColorYellow
+				text = []rune(" dirt ")
+			case TileGrass:
+				color = termbox.ColorGreen
+				text = []rune(" grass ")
+			case TileRock:
+				color = termbox.ColorRed
+				text = []rune(" rock ")
+			case TileSand:
+				color = termbox.ColorCyan
+				text = []rune(" sand ")
+			case TileWater:
+				color = termbox.ColorBlue
+				text = []rune(" water ")
+			}
+			termbox.SetCell(startX+x, startY-y, text[((coord.X*ChunkSize+int64(x)+coord.Y*ChunkSize+int64(y))%int64(len(text))+int64(len(text)))%int64(len(text))], termbox.AttrBold|color, color)
 		}
 	}
 }

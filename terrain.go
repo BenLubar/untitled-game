@@ -50,7 +50,7 @@ func (w *World) generateChunk(coord ChunkCoord) (c *Chunk, err error) {
 	// TODO: more interesting worldgen than "flat ground with lumps"
 	for x := range c.Tiles {
 		fx := float64(coord.X) + float64(x)/float64(ChunkSize)
-		groundY := s.Noise2(fx, 0) * 16
+		groundY := s.Noise2(fx, 0) * 16 / ChunkSize
 		for y := range c.Tiles[x] {
 			fy := float64(coord.Y) + float64(y)/float64(ChunkSize)
 			if fy < groundY {
