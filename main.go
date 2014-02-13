@@ -34,6 +34,7 @@ func main() {
 	repaint := time.Tick(time.Second / 60)
 
 	var playerX, playerY int64
+	var nextPlayerX, nextPlayerY int64
 
 	events := make(chan termbox.Event)
 	go pollEvents(events)
@@ -49,24 +50,19 @@ func main() {
 						return
 					}
 				} else {
-					if e.Key == termbox.KeyArrowDown {
-						playerY--
-						break
+					switch e.Key {
+					case termbox.KeyArrowDown:
+						nextPlayerY = playerY - 1
+					case termbox.KeyArrowUp:
+						nextPlayerY = playerY + 1
+					case termbox.KeyArrowLeft:
+						nextPlayerX = playerX - 1
+					case termbox.KeyArrowRight:
+						nextPlayerX = playerX + 1
+					default:
+						// TODO: game UI
+						panic(fmt.Sprintf("%v, %v, %v", e.Key, e.Ch, e.Mod))
 					}
-					if e.Key == termbox.KeyArrowUp {
-						playerY++
-						break
-					}
-					if e.Key == termbox.KeyArrowLeft {
-						playerX--
-						break
-					}
-					if e.Key == termbox.KeyArrowRight {
-						playerX++
-						break
-					}
-					// TODO: game UI
-					panic(fmt.Sprintf("%v, %v, %v", e.Key, e.Ch, e.Mod))
 				}
 			case termbox.EventMouse:
 				if world := GetWorld(); world == nil {
@@ -87,6 +83,25 @@ func main() {
 			if world := GetWorld(); world == nil {
 				mainMenu.render(w, h)
 			} else {
+				oldPlayerX, oldPlayerY := playerX, playerY
+				playerX, playerY = nextPlayerX, nextPlayerY
+				if oldMid, newMid := ChunkForTile(oldPlayerX, oldPlayerY), ChunkForTile(playerX, playerY); oldMid != newMid {
+					for i := int64(-1); i <= int64(1); i++ {
+						for j := int64(-1); j <= int64(1); j++ {
+							world.RequestChunk(ChunkCoord{newMid.X + i, newMid.X + j})
+						}
+					}
+					for i := int64(-1); i <= int64(1); i++ {
+						for j := int64(-1); j <= int64(1); j++ {
+							c, err := world.RequestChunk(ChunkCoord{oldMid.X + i, oldMid.X + j})
+							if err != nil {
+								panic(err)
+							}
+							world.ReleaseChunk(c)
+							world.ReleaseChunk(c)
+						}
+					}
+				}
 				world.Tick()
 				renderWorld(playerX, playerY, w, h, world)
 				// TODO: game UI
@@ -98,9 +113,10 @@ func main() {
 }
 
 func renderWorld(playerX, playerY int64, w, h int, world *World) {
+	mid := ChunkForTile(playerX, playerY)
 	for cx := int64(-1); cx <= 1; cx++ {
 		for cy := int64(-1); cy <= 1; cy++ {
-			renderChunk(ChunkCoord{cx, cy}, int(cx*ChunkSize-playerX)+w/2, int(playerY-cy*ChunkSize)+h/2, world)
+			renderChunk(ChunkCoord{mid.X + cx, mid.Y + cy}, int((mid.X+cx)*ChunkSize-playerX)+w/2, int(playerY-(mid.Y+cy)*ChunkSize)+h/2, world)
 		}
 	}
 }
