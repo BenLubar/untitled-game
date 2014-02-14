@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/flate"
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
@@ -201,7 +202,7 @@ func (w *World) RequestEntity(id EntityReference) (ent *Entity, err error) {
 		return
 	}
 
-	err = gob.NewDecoder(bytes.NewReader(v)).Decode(&ent)
+	err = bytesToObject(&ent, v)
 	if err != nil {
 		ent = nil
 	} else {
@@ -231,11 +232,11 @@ func (w *World) ReleaseEntity(ent *Entity) {
 	}
 	ent.references--
 	if ent.references == 0 {
-		var buf bytes.Buffer
-		if err := gob.NewEncoder(&buf).Encode(ent); err != nil {
+		b, err := objectToBytes(ent)
+		if err != nil {
 			panic(err)
 		}
-		if err := w.entity.Set(ent.ID.bytes(), buf.Bytes()); err != nil {
+		if err = w.entity.Set(ent.ID.bytes(), b); err != nil {
 			panic(err)
 		}
 		delete(w.entities, ent.ID)
@@ -273,7 +274,7 @@ func (w *World) RequestChunk(coord ChunkCoord) (c *Chunk, err error) {
 		return
 	}
 
-	err = gob.NewDecoder(bytes.NewReader(v)).Decode(&c)
+	err = bytesToObject(&c, v)
 	if err != nil {
 		log.Printf("error decoding chunk (%d, %d): %v", coord.X, coord.Y, err)
 		c = nil
@@ -304,11 +305,11 @@ func (w *World) ReleaseChunk(c *Chunk) {
 	}
 	c.references--
 	if c.references == 0 {
-		var buf bytes.Buffer
-		if err := gob.NewEncoder(&buf).Encode(c); err != nil {
+		b, err := objectToBytes(c)
+		if err != nil {
 			panic(err)
 		}
-		if err := w.chunk.Set(c.ChunkCoord.bytes(), buf.Bytes()); err != nil {
+		if err = w.chunk.Set(c.ChunkCoord.bytes(), b); err != nil {
 			panic(err)
 		}
 		delete(w.chunks, c.ChunkCoord)
@@ -369,6 +370,35 @@ func (w *World) init() (err error) {
 	}
 
 	return w.store.Flush()
+}
+
+func objectToBytes(v interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	f, err := flate.NewWriter(&buf, flate.BestCompression)
+	if err != nil {
+		return nil, err
+	}
+	err = gob.NewEncoder(f).Encode(v)
+	if err != nil {
+		return nil, err
+	}
+	err = f.Close()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func bytesToObject(v interface{}, b []byte) error {
+	f := flate.NewReader(bytes.NewReader(b))
+	defer f.Close()
+
+	err := gob.NewDecoder(f).Decode(v)
+	if err != nil {
+		// try the old, uncompressed format.
+		err = gob.NewDecoder(bytes.NewReader(b)).Decode(v)
+	}
+	return err
 }
 
 func (w *World) Tick() {
