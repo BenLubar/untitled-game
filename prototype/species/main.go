@@ -1,15 +1,35 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"strconv"
 )
 
+var seed = flag.Int64("seed", 0, "random seed")
+
 func main() {
-	r := rand.New(rand.NewSource(0))
+	flag.Parse()
+
+	r := rand.New(rand.NewSource(*seed))
 	s := NewSpecies(r)
 	fmt.Println(s)
+}
+
+func intn(r *rand.Rand, chances ...int) int {
+	n := 0
+	for _, c := range chances {
+		n += c
+	}
+	n = r.Intn(n)
+	for i, c := range chances {
+		n -= c
+		if n < 0 {
+			return i
+		}
+	}
+	panic("unreachable")
 }
 
 type Species struct {
@@ -38,7 +58,7 @@ type Body struct {
 func NewBody(r *rand.Rand) *Body {
 	var b Body
 
-	b.Separatable = r.Intn(3) != 0
+	b.Separatable = intn(r, 7, 1) > 0
 	b.Upper = NewThorax(r)
 	b.Lower = NewAbdomen(r)
 
@@ -76,24 +96,16 @@ type Thorax struct {
 func NewThorax(r *rand.Rand) *Thorax {
 	var t Thorax
 
-	headTypes := r.Intn(3) + 1
+	headTypes := intn(r, 0, 30, 10, 5, 3, 2, 1, 1, 1, 1, 1)
 	for i := 0; i < headTypes; i++ {
-		h := NewHead(r)
-
-		headCount := r.Intn(7) + 1
-		for j := 0; j < headCount; j++ {
-			t.Heads = append(t.Heads, h)
-		}
+		t.Heads = append(t.Heads, NewHead(r))
 	}
 
-	limbTypes := r.Intn(2)
+	limbTypes := intn(r, 2, 4, 1)
 	for i := 0; i < limbTypes; i++ {
 		l := NewLimb(r)
 
-		limbCount := (r.Intn(2) + 1) * 2
-		if r.Intn(5) == 0 {
-			limbCount--
-		}
+		limbCount := intn(r, 0, 20, 80, 15, 60, 10, 40, 5, 20, 1, 4)
 		for j := 0; j < limbCount; j++ {
 			t.Limbs = append(t.Limbs, l)
 		}
@@ -139,24 +151,21 @@ type Abdomen struct {
 func NewAbdomen(r *rand.Rand) *Abdomen {
 	var a Abdomen
 
-	limbTypes := r.Intn(2)
+	limbTypes := intn(r, 2, 4, 1)
 	for i := 0; i < limbTypes; i++ {
 		l := NewLimb(r)
 
-		limbCount := (r.Intn(3) + 1) * 2
-		if r.Intn(5) == 0 {
-			limbCount--
-		}
+		limbCount := intn(r, 0, 20, 80, 15, 60, 10, 40, 5, 20, 1, 4)
 		for j := 0; j < limbCount; j++ {
 			a.Limbs = append(a.Limbs, l)
 		}
 	}
 
-	tailTypes := r.Intn(4)
+	tailTypes := intn(r, 15, 10, 2, 1, 1)
 	for i := 0; i < tailTypes; i++ {
 		t := NewTail(r)
 
-		tailCount := r.Intn(9) + 1
+		tailCount := intn(r, 0, 30, 10, 6, 4, 3, 2, 1, 1, 5)
 		for j := 0; j < tailCount; j++ {
 			a.Tails = append(a.Tails, t)
 		}
@@ -174,7 +183,7 @@ func (a *Abdomen) Indent(buf, indent []byte) []byte {
 		if first {
 			first = false
 		} else {
-			buf = append(buf, '\n')
+			buf = append(buf, 1, '\n')
 		}
 		buf = append(buf, indent...)
 		buf = append(buf, "Limb:\n"...)
@@ -227,7 +236,7 @@ type Limb struct {
 func NewLimb(r *rand.Rand) *Limb {
 	var l Limb
 
-	l.Joints = uint8(r.Intn(5))
+	l.Joints = uint8(intn(r, 20, 30, 7, 2, 1))
 	l.Type = LimbType(r.Intn(int(limbTypeCount)))
 
 	return &l
@@ -258,14 +267,11 @@ type Head struct {
 func NewHead(r *rand.Rand) *Head {
 	var h Head
 
-	eyeTypes := r.Intn(2)
+	eyeTypes := intn(r, 10, 20, 15, 10, 5, 1)
 	for i := 0; i < eyeTypes; i++ {
 		e := NewEye(r)
 
-		eyeCount := (r.Intn(3) + 1) * 2
-		if r.Intn(5) == 0 {
-			eyeCount--
-		}
+		eyeCount := intn(r, 0, 10, 20, 2, 4, 1, 2)
 		for j := 0; j < eyeCount; j++ {
 			h.Eyes = append(h.Eyes, e)
 		}
