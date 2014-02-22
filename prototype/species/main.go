@@ -183,7 +183,7 @@ func (a *Abdomen) Indent(buf, indent []byte) []byte {
 		if first {
 			first = false
 		} else {
-			buf = append(buf, 1, '\n')
+			buf = append(buf, '\n')
 		}
 		buf = append(buf, indent...)
 		buf = append(buf, "Limb:\n"...)
