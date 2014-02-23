@@ -112,8 +112,16 @@ func (s Size) Adverb(big, little string) string {
 	case s >= SizeMiniscule:
 		return "extremely " + little
 	default:
-		return "not"
+		return "infinitesimally " + little
 	}
+}
+
+func (s Size) Length() string {
+	return s.Adverb("long", "short")
+}
+
+func (s Size) Width() string {
+	return s.Adverb("wide", "narrow")
 }
 
 func randomSize(r *rand.Rand) Size {
@@ -191,9 +199,9 @@ func NewThorax(r *rand.Rand) *Thorax {
 
 func (t *Thorax) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "Its upper body is "...)
-	buf = append(buf, t.Length.Adverb("long", "short")...)
+	buf = append(buf, t.Length.Length()...)
 	buf = append(buf, " and "...)
-	buf = append(buf, t.Width.Adverb("wide", "narrow")...)
+	buf = append(buf, t.Width.Width()...)
 	buf = append(buf, ". "...)
 
 	for i, h := range t.Heads {
@@ -236,9 +244,9 @@ func NewAbdomen(r *rand.Rand) *Abdomen {
 
 func (a *Abdomen) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "Its lower body is "...)
-	buf = append(buf, a.Length.Adverb("long", "short")...)
+	buf = append(buf, a.Length.Length()...)
 	buf = append(buf, " and "...)
-	buf = append(buf, a.Width.Adverb("wide", "narrow")...)
+	buf = append(buf, a.Width.Width()...)
 	buf = append(buf, ". "...)
 
 	for i, l := range a.Limbs {
@@ -301,9 +309,9 @@ func (l *Limb) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It has "...)
 	buf = append(buf, language.Number(int(l.Count))...)
 	buf = append(buf, " "...)
-	buf = append(buf, l.Length.Adverb("long", "short")...)
+	buf = append(buf, l.Length.Length()...)
 	buf = append(buf, ", "...)
-	buf = append(buf, l.Width.Adverb("wide", "narrow")...)
+	buf = append(buf, l.Width.Width()...)
 	buf = append(buf, " "...)
 	buf = append(buf, limbTypeName[l.Type]...)
 	if l.Count == 1 {
@@ -312,9 +320,9 @@ func (l *Limb) Append(buf []byte, n, total int) []byte {
 		buf = append(buf, "-limbs, each with "...)
 	}
 	if l.Joints == 0 {
-		buf = append(buf, " no joints. "...)
+		buf = append(buf, "no joints. "...)
 	} else if l.Joints == 1 {
-		buf = append(buf, " one joint. "...)
+		buf = append(buf, "one joint. "...)
 	} else {
 		buf = append(buf, language.Number(int(l.Joints))...)
 		buf = append(buf, " joints. "...)
@@ -355,9 +363,9 @@ func (h *Head) Append(buf []byte, n, total int) []byte {
 		buf = append(buf, language.Ordinal(n)...)
 		buf = append(buf, " head is "...)
 	}
-	buf = append(buf, h.Length.Adverb("long", "short")...)
+	buf = append(buf, h.Length.Length()...)
 	buf = append(buf, " and "...)
-	buf = append(buf, h.Width.Adverb("wide", "narrow")...)
+	buf = append(buf, h.Width.Width()...)
 	buf = append(buf, ". "...)
 	buf = h.Mouth.Append(buf, 0, 0)
 
@@ -388,9 +396,9 @@ func (t *Tail) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It has "...)
 	buf = append(buf, language.Number(int(t.Count))...)
 	buf = append(buf, " "...)
-	buf = append(buf, t.Length.Adverb("long", "short")...)
+	buf = append(buf, t.Length.Length()...)
 	buf = append(buf, ", "...)
-	buf = append(buf, t.Width.Adverb("wide", "narrow")...)
+	buf = append(buf, t.Width.Width()...)
 	if t.Count == 1 {
 		buf = append(buf, " tail. "...)
 	} else {
@@ -456,9 +464,9 @@ func NewMouth(r *rand.Rand) *Mouth {
 
 func (m *Mouth) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It has a "...)
-	buf = append(buf, m.Length.Adverb("long", "short")...)
+	buf = append(buf, m.Length.Length()...)
 	buf = append(buf, ", "...)
-	buf = append(buf, m.Width.Adverb("wide", "narrow")...)
+	buf = append(buf, m.Width.Width()...)
 	buf = append(buf, " mouth containing "...)
 	for i, t := range m.Teeth {
 		if i > 0 && len(m.Teeth) > 2 {
