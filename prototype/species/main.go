@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/BenLubar/untitled-game/language"
 	"math/rand"
-	"strconv"
 )
 
 var (
@@ -54,8 +54,7 @@ func NewSpecies(r *rand.Rand) *Species {
 }
 
 func (s *Species) String() string {
-	str := s.Body.String()
-	return str[:len(str)-1]
+	return s.Body.String()
 }
 
 type Size uint32
@@ -144,39 +143,21 @@ func NewBody(r *rand.Rand) *Body {
 }
 
 func (b *Body) String() string {
-	var buf []byte
+	buf := b.Append(nil, 0, 0)
+	return string(buf[:len(buf)-1])
+}
 
+func (b *Body) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It is "...)
 	buf = append(buf, b.Size.String()...)
 	buf = append(buf, ". "...)
 
-	buf = append(buf, b.Upper.String()...)
-	buf = append(buf, b.Lower.String()...)
+	buf = b.Upper.Append(buf, 0, 0)
+	buf = b.Lower.Append(buf, 0, 0)
+
 	if b.Separatable {
 		buf = append(buf, "Its body separates in the middle like an insect. "...)
 	}
-	return string(buf)
-}
-
-func (b *Body) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Upper:\n"...)
-	buf = b.Upper.Indent(buf, indent)
-
-	buf = append(buf, '\n')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Lower:\n"...)
-	buf = b.Lower.Indent(buf, indent)
-
-	buf = append(buf, '\n')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Separatable:\n\t"...)
-	buf = append(buf, indent...)
-	buf = strconv.AppendBool(buf, b.Separatable)
 
 	return buf
 }
@@ -208,50 +189,19 @@ func NewThorax(r *rand.Rand) *Thorax {
 	return &t
 }
 
-func (t *Thorax) String() string {
-	var buf []byte
-
+func (t *Thorax) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "Its upper body is "...)
-	buf = append(buf, t.Width.Adverb("wide", "narrow")...)
-	buf = append(buf, " and "...)
 	buf = append(buf, t.Length.Adverb("long", "short")...)
+	buf = append(buf, " and "...)
+	buf = append(buf, t.Width.Adverb("wide", "narrow")...)
 	buf = append(buf, ". "...)
 
-	for _, h := range t.Heads {
-		buf = append(buf, h.String()...)
+	for i, h := range t.Heads {
+		buf = h.Append(buf, i+1, len(t.Heads))
 	}
 
-	for _, l := range t.Limbs {
-		buf = append(buf, l.String()...)
-	}
-
-	return string(buf)
-}
-
-func (t *Thorax) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	first := true
-
-	for _, h := range t.Heads {
-		if first {
-			first = false
-		} else {
-			buf = append(buf, '\n')
-		}
-		buf = append(buf, indent...)
-		buf = append(buf, "Head:\n"...)
-		buf = h.Indent(buf, indent)
-	}
-	for _, l := range t.Limbs {
-		if first {
-			first = false
-		} else {
-			buf = append(buf, '\n')
-		}
-		buf = append(buf, indent...)
-		buf = append(buf, "Limb:\n"...)
-		buf = l.Indent(buf, indent)
+	for i, l := range t.Limbs {
+		buf = l.Append(buf, i+1, len(t.Limbs))
 	}
 
 	return buf
@@ -284,51 +234,19 @@ func NewAbdomen(r *rand.Rand) *Abdomen {
 	return &a
 }
 
-func (a *Abdomen) String() string {
-	var buf []byte
-
+func (a *Abdomen) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "Its lower body is "...)
-	buf = append(buf, a.Width.Adverb("wide", "narrow")...)
-	buf = append(buf, " and "...)
 	buf = append(buf, a.Length.Adverb("long", "short")...)
+	buf = append(buf, " and "...)
+	buf = append(buf, a.Width.Adverb("wide", "narrow")...)
 	buf = append(buf, ". "...)
 
-	for _, l := range a.Limbs {
-		buf = append(buf, l.String()...)
+	for i, l := range a.Limbs {
+		buf = l.Append(buf, i+1, len(a.Limbs))
 	}
 
-	for _, t := range a.Tails {
-		buf = append(buf, t.String()...)
-	}
-
-	return string(buf)
-}
-
-func (a *Abdomen) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	first := true
-
-	for _, l := range a.Limbs {
-		if first {
-			first = false
-		} else {
-			buf = append(buf, '\n')
-		}
-		buf = append(buf, indent...)
-		buf = append(buf, "Limb:\n"...)
-		buf = l.Indent(buf, indent)
-	}
-
-	for _, t := range a.Tails {
-		if first {
-			first = false
-		} else {
-			buf = append(buf, '\n')
-		}
-		buf = append(buf, indent...)
-		buf = append(buf, "Tail:\n"...)
-		buf = t.Indent(buf, indent)
+	for i, t := range a.Tails {
+		buf = t.Append(buf, i+1, len(a.Tails))
 	}
 
 	return buf
@@ -379,45 +297,28 @@ func NewLimb(r *rand.Rand) *Limb {
 	return &l
 }
 
-func (l *Limb) String() string {
-	var buf []byte
-
+func (l *Limb) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It has "...)
-	buf = strconv.AppendUint(buf, uint64(l.Count), 10)
+	buf = append(buf, language.Number(int(l.Count))...)
 	buf = append(buf, " "...)
-	buf = append(buf, l.Width.Adverb("wide", "narrow")...)
-	buf = append(buf, ", "...)
 	buf = append(buf, l.Length.Adverb("long", "short")...)
+	buf = append(buf, ", "...)
+	buf = append(buf, l.Width.Adverb("wide", "narrow")...)
 	buf = append(buf, " "...)
 	buf = append(buf, limbTypeName[l.Type]...)
-	buf = append(buf, "-limbs, each with "...)
-	buf = strconv.AppendUint(buf, uint64(l.Joints), 10)
-	buf = append(buf, " joints. "...)
-
-	return string(buf)
-}
-
-func (l *Limb) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Count:\n\t"...)
-	buf = append(buf, indent...)
-	buf = strconv.AppendUint(buf, uint64(l.Count), 10)
-
-	buf = append(buf, '\n')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Joints:\n\t"...)
-	buf = append(buf, indent...)
-	buf = strconv.AppendUint(buf, uint64(l.Joints), 10)
-
-	buf = append(buf, '\n')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Type:\n\t"...)
-	buf = append(buf, indent...)
-	buf = append(buf, limbTypeName[l.Type]...)
+	if l.Count == 1 {
+		buf = append(buf, "-limb, each with "...)
+	} else {
+		buf = append(buf, "-limbs, each with "...)
+	}
+	if l.Joints == 0 {
+		buf = append(buf, " no joints. "...)
+	} else if l.Joints == 1 {
+		buf = append(buf, " one joint. "...)
+	} else {
+		buf = append(buf, language.Number(int(l.Joints))...)
+		buf = append(buf, " joints. "...)
+	}
 
 	return buf
 }
@@ -446,46 +347,23 @@ func NewHead(r *rand.Rand) *Head {
 	return &h
 }
 
-func (h *Head) String() string {
-	var buf []byte
-
-	buf = append(buf, "It has a head that is "...)
-	buf = append(buf, h.Width.Adverb("wide", "narrow")...)
-	buf = append(buf, " and "...)
-	buf = append(buf, h.Length.Adverb("long", "short")...)
-	buf = append(buf, ". "...)
-	buf = append(buf, h.Mouth.String()...)
-
-	for _, e := range h.Eyes {
-		buf = append(buf, e.String()...)
-	}
-
-	return string(buf)
-}
-
-func (h *Head) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	first := true
-
-	for _, e := range h.Eyes {
-		if first {
-			first = false
-		} else {
-			buf = append(buf, '\n')
-		}
-		buf = append(buf, indent...)
-		buf = append(buf, "Eye:\n"...)
-		buf = e.Indent(buf, indent)
-	}
-	if first {
-		first = false
+func (h *Head) Append(buf []byte, n, total int) []byte {
+	if total == 1 {
+		buf = append(buf, "Its head is "...)
 	} else {
-		buf = append(buf, '\n')
+		buf = append(buf, "Its "...)
+		buf = append(buf, language.Ordinal(n)...)
+		buf = append(buf, " head is "...)
 	}
-	buf = append(buf, indent...)
-	buf = append(buf, "Mouth:\n"...)
-	buf = h.Mouth.Indent(buf, indent)
+	buf = append(buf, h.Length.Adverb("long", "short")...)
+	buf = append(buf, " and "...)
+	buf = append(buf, h.Width.Adverb("wide", "narrow")...)
+	buf = append(buf, ". "...)
+	buf = h.Mouth.Append(buf, 0, 0)
+
+	for i, e := range h.Eyes {
+		buf = e.Append(buf, i+1, len(h.Eyes))
+	}
 
 	return buf
 }
@@ -506,27 +384,18 @@ func NewTail(r *rand.Rand) *Tail {
 	return &t
 }
 
-func (t *Tail) String() string {
-	var buf []byte
-
+func (t *Tail) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It has "...)
-	buf = strconv.AppendUint(buf, uint64(t.Count), 10)
+	buf = append(buf, language.Number(int(t.Count))...)
 	buf = append(buf, " "...)
-	buf = append(buf, t.Width.Adverb("wide", "narrow")...)
-	buf = append(buf, ", "...)
 	buf = append(buf, t.Length.Adverb("long", "short")...)
-	buf = append(buf, " tails. "...)
-
-	return string(buf)
-}
-
-func (t *Tail) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Count:\n\t"...)
-	buf = append(buf, indent...)
-	buf = strconv.AppendUint(buf, uint64(t.Count), 10)
+	buf = append(buf, ", "...)
+	buf = append(buf, t.Width.Adverb("wide", "narrow")...)
+	if t.Count == 1 {
+		buf = append(buf, " tail. "...)
+	} else {
+		buf = append(buf, " tails. "...)
+	}
 
 	return buf
 }
@@ -546,25 +415,20 @@ func NewEye(r *rand.Rand) *Eye {
 	return &e
 }
 
-func (e *Eye) String() string {
-	var buf []byte
-
-	buf = append(buf, "On its head there are "...)
-	buf = strconv.AppendUint(buf, uint64(e.Count), 10)
+func (e *Eye) Append(buf []byte, n, total int) []byte {
+	if e.Count == 1 {
+		buf = append(buf, "On its head there is "...)
+	} else {
+		buf = append(buf, "On its head there are "...)
+	}
+	buf = append(buf, language.Number(int(e.Count))...)
 	buf = append(buf, " "...)
 	buf = append(buf, e.Size.String()...)
-	buf = append(buf, " eyes. "...)
-
-	return string(buf)
-}
-
-func (e *Eye) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Count:\n\t"...)
-	buf = append(buf, indent...)
-	buf = strconv.AppendUint(buf, uint64(e.Count), 10)
+	if e.Count == 1 {
+		buf = append(buf, " eye. "...)
+	} else {
+		buf = append(buf, " eyes. "...)
+	}
 
 	return buf
 }
@@ -590,13 +454,11 @@ func NewMouth(r *rand.Rand) *Mouth {
 	return &m
 }
 
-func (m *Mouth) String() string {
-	var buf []byte
-
+func (m *Mouth) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It has a "...)
-	buf = append(buf, m.Width.Adverb("wide", "narrow")...)
-	buf = append(buf, ", "...)
 	buf = append(buf, m.Length.Adverb("long", "short")...)
+	buf = append(buf, ", "...)
+	buf = append(buf, m.Width.Adverb("wide", "narrow")...)
 	buf = append(buf, " mouth containing "...)
 	for i, t := range m.Teeth {
 		if i > 0 && len(m.Teeth) > 2 {
@@ -608,31 +470,12 @@ func (m *Mouth) String() string {
 			}
 			buf = append(buf, "and "...)
 		}
-		buf = append(buf, t.String()...)
+		buf = t.Append(buf, i+1, len(m.Teeth))
 	}
 	if len(m.Teeth) == 0 {
 		buf = append(buf, "no teeth"...)
 	}
 	buf = append(buf, ". "...)
-
-	return string(buf)
-}
-
-func (m *Mouth) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	first := true
-
-	for _, t := range m.Teeth {
-		if first {
-			first = false
-		} else {
-			buf = append(buf, '\n')
-		}
-		buf = append(buf, indent...)
-		buf = append(buf, "Tooth:\n"...)
-		buf = t.Indent(buf, indent)
-	}
 
 	return buf
 }
@@ -649,6 +492,13 @@ const (
 )
 
 var toothTypeName = [toothTypeCount]string{
+	ToothMolar:   "molar",
+	ToothCuspid:  "fang",
+	ToothIncisor: "incisor",
+	ToothTusk:    "tusk",
+}
+
+var teethTypeName = [toothTypeCount]string{
 	ToothMolar:   "molars",
 	ToothCuspid:  "fangs",
 	ToothIncisor: "incisors",
@@ -671,7 +521,10 @@ func NewTooth(r *rand.Rand) *Tooth {
 		// fewer tusks and fangs
 		t.Count = uint16(intn(r, 0, 10, 25, 10, 9, 7, 5, 3, 2, 1, 1, 1))
 	} else {
-		t.Count = uint16(intn(r, 0, 10, 10, 15, 15, 15, 15, 15, 15, 15, 15, 10, 10, 9, 8, 7, 5, 3, 2, 1, 1, 1))
+		t.Count = uint16(intn(r, 1, 10, 10, 15, 15, 15, 15, 15, 15, 15, 15, 10, 10, 9, 9, 8, 8, 7, 7, 5, 5, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1))
+		if t.Count == 0 {
+			t.Count = uint16(r.Intn(5000) + 1)
+		}
 	}
 
 	t.Size = randomSize(r)
@@ -679,24 +532,15 @@ func NewTooth(r *rand.Rand) *Tooth {
 	return &t
 }
 
-func (t *Tooth) String() string {
-	return strconv.FormatUint(uint64(t.Count), 10) + " " + t.Size.String() + " " + toothTypeName[t.Type]
-}
-
-func (t *Tooth) Indent(buf, indent []byte) []byte {
-	indent = append(indent, '\t')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Count:\n\t"...)
-	buf = append(buf, indent...)
-	buf = strconv.AppendUint(buf, uint64(t.Count), 10)
-
-	buf = append(buf, '\n')
-
-	buf = append(buf, indent...)
-	buf = append(buf, "Type:\n\t"...)
-	buf = append(buf, indent...)
-	buf = append(buf, toothTypeName[t.Type]...)
-
+func (t *Tooth) Append(buf []byte, n, total int) []byte {
+	buf = append(buf, language.Number(int(t.Count))...)
+	buf = append(buf, " "...)
+	buf = append(buf, t.Size.String()...)
+	buf = append(buf, " "...)
+	if t.Count == 1 {
+		buf = append(buf, toothTypeName[t.Type]...)
+	} else {
+		buf = append(buf, teethTypeName[t.Type]...)
+	}
 	return buf
 }
