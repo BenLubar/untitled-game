@@ -20,6 +20,8 @@ func main() {
 	for i := 0; i < *count; i++ {
 		if i != 0 {
 			fmt.Println()
+			fmt.Println("--------------------------------------------------------------------------------")
+			fmt.Println()
 		}
 		s := NewSpecies(r)
 		fmt.Println(s)

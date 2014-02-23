@@ -93,6 +93,9 @@ func Ordinal(i int) string {
 	if strings.HasSuffix(s, "five") {
 		return s[:len(s)-len("five")] + "fifth"
 	}
+	if strings.HasSuffix(s, "nine") {
+		return s[:len(s)-len("nine")] + "ninth"
+	}
 	return s + "th"
 }
 
