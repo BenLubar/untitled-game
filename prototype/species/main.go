@@ -9,6 +9,7 @@ import (
 
 var (
 	seed  = flag.Int64("seed", 0, "random seed")
+	skip  = flag.Int("skip", 0, "number of species to generate but not print")
 	count = flag.Int("count", 10, "number of species to generate")
 )
 
@@ -16,6 +17,10 @@ func main() {
 	flag.Parse()
 
 	r := rand.New(rand.NewSource(*seed))
+
+	for i := 0; i < *skip; i++ {
+		_ = NewSpecies(r)
+	}
 
 	for i := 0; i < *count; i++ {
 		if i != 0 {
@@ -132,11 +137,101 @@ func randomSize(r *rand.Rand) Size {
 	return s
 }
 
+type Texture uint16
+
+const (
+	TexSmoothLeather Texture = iota
+	TexRoughLeather
+	TexWrinkledLeather
+	TexSmoothFur
+	TexStripedFur
+	TexSpottedFur
+	TexSmoothScale
+	TexRoughScale
+	TexSmoothChitin
+	TexRoughChitin
+	TexSmoothWood
+	TexRoughWood
+	TexMetal
+	TexRock
+	TexSlime
+	TexVapor
+
+	texCount
+)
+
+var texName = [texCount]string{
+	TexSmoothLeather:   "smooth leathery skin",
+	TexRoughLeather:    "rough leathery skin",
+	TexWrinkledLeather: "wrinkled leathery skin",
+	TexSmoothFur:       "smooth fur",
+	TexStripedFur:      "striped fur",
+	TexSpottedFur:      "spotted fur",
+	TexSmoothScale:     "smooth scales",
+	TexRoughScale:      "rough scales",
+	TexSmoothChitin:    "smooth chitin",
+	TexRoughChitin:     "rough chitin",
+	TexSmoothWood:      "smooth wood-like skin",
+	TexRoughWood:       "rough wood-like skin",
+	TexMetal:           "metalic skin",
+	TexRock:            "rock-hard skin",
+	TexSlime:           "slimy skin",
+	TexVapor:           "vapor-like skin",
+}
+
+type Color uint16
+
+const (
+	ColorWhite Color = iota
+	ColorGray
+	ColorBlack
+	ColorBeige
+	ColorTan
+	ColorBrown
+	ColorPink
+	ColorRed
+	ColorMaroon
+	ColorYellow
+	ColorOrange
+	ColorGreen
+	ColorTurquoise
+	ColorBlue
+	ColorNavy
+	ColorViolet
+	ColorPurple
+	ColorIndigo
+
+	colorCount
+)
+
+var colorName = [colorCount]string{
+	ColorWhite:     "white",
+	ColorGray:      "gray",
+	ColorBlack:     "black",
+	ColorBeige:     "beige",
+	ColorTan:       "tan",
+	ColorBrown:     "brown",
+	ColorPink:      "pink",
+	ColorRed:       "red",
+	ColorMaroon:    "maroon",
+	ColorYellow:    "yellow",
+	ColorOrange:    "orange",
+	ColorGreen:     "green",
+	ColorTurquoise: "turquoise",
+	ColorBlue:      "blue",
+	ColorNavy:      "navy",
+	ColorViolet:    "violet",
+	ColorPurple:    "purple",
+	ColorIndigo:    "indigo",
+}
+
 type Body struct {
 	Upper *Thorax
 	Lower *Abdomen
 
-	Size Size
+	Size  Size
+	Skin  Texture
+	Color Color
 
 	Separatable bool
 }
@@ -148,6 +243,8 @@ func NewBody(r *rand.Rand) *Body {
 	b.Upper = NewThorax(r)
 	b.Lower = NewAbdomen(r)
 	b.Size = randomSize(r)
+	b.Skin = Texture(r.Intn(int(texCount)))
+	b.Color = Color(r.Intn(int(colorCount)))
 
 	return &b
 }
@@ -160,6 +257,10 @@ func (b *Body) String() string {
 func (b *Body) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, "It is "...)
 	buf = append(buf, b.Size.String()...)
+	buf = append(buf, " with "...)
+	buf = append(buf, colorName[b.Color]...)
+	buf = append(buf, " "...)
+	buf = append(buf, texName[b.Skin]...)
 	buf = append(buf, ". "...)
 
 	buf = b.Upper.Append(buf, 0, 0)
@@ -317,7 +418,7 @@ func (l *Limb) Append(buf []byte, n, total int) []byte {
 	buf = append(buf, " "...)
 	buf = append(buf, limbTypeName[l.Type]...)
 	if l.Count == 1 {
-		buf = append(buf, "-limb, each with "...)
+		buf = append(buf, "-limb with "...)
 	} else {
 		buf = append(buf, "-limbs, each with "...)
 	}
